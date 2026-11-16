@@ -3,84 +3,117 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0f766e">
+<meta name="theme-color" content="#1b3a8f">
 <title>Remitos</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <style>
-:root{--pri:#0f766e;--pri-d:#0b5c56;--bg:#f3f5f7;--card:#fff;--tx:#17212b;--mut:#64748b;--line:#e2e8f0;--red:#c62828;--amber:#b45309}
+:root{--azul:#1b3a8f;--azul-suave:#e6ecfa;--fondo:#eef1f5;--blanco:#fff;--rojo:#c8102e;--tx:#14213d;--mut:#5b6780;--linea:#d5dbe6}
 *{box-sizing:border-box}
-html,body{margin:0;height:100%}
-body{font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--tx);-webkit-tap-highlight-color:transparent}
-header{background:var(--pri);color:#fff;padding:12px 16px;padding-top:calc(12px + env(safe-area-inset-top));font-weight:700;font-size:18px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:5}
-header small{font-weight:400;opacity:.85;font-size:13px}
-main{max-width:1100px;margin:0 auto;padding:12px 12px 150px}
-nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);display:flex;z-index:6;padding-bottom:env(safe-area-inset-bottom)}
-nav button{flex:1;border:0;background:none;padding:8px 2px 9px;font:inherit;font-size:12px;color:var(--mut);display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer}
-nav button span{font-size:20px;line-height:1}
-nav button.on{color:var(--pri);font-weight:700}
-h2{font-size:18px;margin:4px 0 10px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px}
-input,select,textarea{font:inherit;width:100%;padding:10px 12px;border:1px solid #cbd5e1;border-radius:10px;background:#fff;color:var(--tx)}
-textarea{min-height:60px;resize:vertical}
-label{display:block;font-size:13px;color:var(--mut);margin-bottom:10px}
-label input,label select,label textarea{margin-top:4px;font-size:16px;color:var(--tx)}
+html,body{margin:0;min-height:100%}
+body{font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--fondo);color:var(--tx);-webkit-tap-highlight-color:transparent;font-variant-numeric:tabular-nums}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid #7d9bea;outline-offset:2px}
+
+header{background:var(--azul);color:#fff;padding:10px 16px;padding-top:calc(10px + env(safe-area-inset-top));display:flex;justify-content:space-between;align-items:center;gap:10px;position:sticky;top:0;z-index:5;min-height:54px}
+.marca{display:flex;align-items:center;gap:10px;min-width:0}
+#logo{height:34px;max-width:90px;object-fit:contain;background:#fff;border-radius:6px;padding:2px}
+#titulo{font-weight:700;font-size:19px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#estado{font-size:13px;opacity:.9;white-space:nowrap}
+main{max-width:1120px;margin:0 auto;padding:14px 12px 160px}
+
+nav{position:fixed;bottom:0;left:0;right:0;background:var(--blanco);border-top:1px solid var(--linea);display:flex;z-index:6;padding-bottom:env(safe-area-inset-bottom)}
+nav button{flex:1;border:0;background:none;padding:8px 2px;font-size:12px;color:var(--mut);display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer}
+nav svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+nav button.on{color:var(--azul);font-weight:700}
+
+h2{font-size:19px;line-height:1.2;margin:2px 0 12px}
+.card{background:var(--blanco);border:1px solid var(--linea);border-radius:10px;padding:14px;margin-bottom:10px}
+input,select,textarea{width:100%;padding:11px 12px;border:1px solid #b9c2d3;border-radius:8px;background:#fff}
+input:focus,select:focus{border-color:var(--azul);outline:0;box-shadow:0 0 0 3px var(--azul-suave)}
+label{display:block;font-size:14px;color:var(--mut);margin-bottom:10px}
+label input,label select{margin-top:4px;font-size:16px;color:var(--tx)}
 label.chk{display:flex;gap:10px;align-items:center;font-size:15px;color:var(--tx)}
-label.chk input{width:22px;height:22px;margin:0}
-.btn{font:inherit;border:1px solid #cbd5e1;background:#fff;color:var(--tx);border-radius:10px;padding:10px 14px;cursor:pointer;font-weight:600}
-.btn.pri{background:var(--pri);border-color:var(--pri);color:#fff}
+label.chk input{width:22px;height:22px;margin:0;accent-color:var(--azul)}
+.busca{position:relative}
+.busca svg{position:absolute;left:12px;top:50%;width:20px;height:20px;margin-top:-10px;fill:none;stroke:var(--mut);stroke-width:2;stroke-linecap:round;pointer-events:none}
+.busca input{padding-left:40px;height:46px}
+
+.btn{border:1px solid #b9c2d3;background:#fff;border-radius:8px;padding:10px 14px;cursor:pointer;font-weight:600}
+.btn.pri{background:var(--azul);border-color:var(--azul);color:#fff}
 .btn.big{width:100%;padding:14px;font-size:17px}
-.btn.red{color:var(--red);border-color:#f0c4c4}
-.btn.sm{padding:6px 10px;font-size:14px}
+.btn.red{color:var(--rojo);border-color:#ecb8c1}
+.btn.sm{padding:7px 12px;font-size:14px}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.row>.grow{flex:1;min-width:160px}
-.mut{color:var(--mut);font-size:13px}
-.prod{display:flex;align-items:center;gap:10px;padding:10px 12px;background:#fff;border:1px solid var(--line);border-radius:12px;margin-bottom:6px}
-.prod.sel{border-color:var(--pri);background:#f0fbf9}
-.prod .pi{flex:1;min-width:0}
-.prod .pi b{display:block;font-weight:600;overflow-wrap:anywhere}
-.prod .pp{font-weight:700;white-space:nowrap}
-.stp{display:flex;align-items:center;gap:4px}
-.stp button{width:38px;height:38px;border-radius:10px;border:1px solid #cbd5e1;background:#fff;font-size:20px;font-weight:700;cursor:pointer;color:var(--pri)}
-.stp input{width:58px;text-align:center;padding:8px 2px}
-.bad{color:var(--red);font-weight:600}
-.tot{font-size:22px;font-weight:800;display:flex;justify-content:space-between;margin:12px 0}
-.sub{display:flex;justify-content:space-between;color:var(--mut);font-size:14px}
-.citem{display:flex;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
-.citem .pi{flex:1;min-width:0}
-.citem .pi b{font-weight:600;display:block;overflow-wrap:anywhere}
-.barra{position:fixed;left:10px;right:10px;bottom:calc(66px + env(safe-area-inset-bottom));background:var(--pri-d);color:#fff;border:0;border-radius:14px;padding:14px 16px;font:inherit;font-weight:700;display:flex;justify-content:space-between;box-shadow:0 6px 18px rgba(0,0,0,.25);z-index:4;cursor:pointer}
+.row>.grow{flex:1;min-width:150px}
+.mut{color:var(--mut);font-size:14px}
+.bad{color:var(--rojo);font-weight:600}
+
+.prod{display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--blanco);border:1px solid var(--linea);border-radius:8px;margin-bottom:6px}
+.prod.sel{border-color:var(--azul);background:#f5f8ff}
+.pi{flex:1;min-width:0}
+.pi b{display:block;font-weight:600;overflow-wrap:anywhere}
+.meta{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:2px;font-size:13px;color:var(--mut)}
+.pr{display:flex;align-items:center;gap:12px}
+.pp{font-weight:700;white-space:nowrap}
+.mas{width:42px;height:42px;border-radius:8px;border:0;background:var(--azul);color:#fff;font-size:24px;line-height:1;cursor:pointer}
+.stp{display:flex;align-items:center;border:1px solid var(--azul);border-radius:8px;background:#fff;overflow:hidden}
+.stp button{width:38px;height:40px;border:0;background:none;font-size:22px;font-weight:600;cursor:pointer;color:var(--azul)}
+.stp input{width:46px;text-align:center;padding:6px 0;border:0;border-radius:0;font-weight:700;-moz-appearance:textfield;box-shadow:none}
+.stp input::-webkit-outer-spin-button,.stp input::-webkit-inner-spin-button{-webkit-appearance:none}
+
+.papel{background:var(--blanco);border:1px solid var(--linea);border-radius:10px;padding:14px}
+.papel-cab{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:12px}
+.papel-cab h2{margin:0}
+.papel-cab div{text-align:right}
+.nro{font-weight:700;white-space:nowrap}
+.papel-cab small{display:block;color:var(--mut);font-size:13px}
+.citem{display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--linea)}
+.citem .imp{font-weight:700;color:var(--tx)}
+.vacio{padding:14px 0;border-bottom:1px solid var(--linea);color:var(--mut)}
+.sub{display:flex;justify-content:space-between;color:var(--mut);font-size:15px;margin-top:6px}
+.tot{display:flex;justify-content:space-between;align-items:baseline;margin:12px 0 14px;font-size:24px;font-weight:800}
+
+.barra{position:fixed;left:10px;right:10px;bottom:calc(68px + env(safe-area-inset-bottom));background:var(--azul);color:#fff;border:0;border-radius:10px;padding:14px 16px;font-weight:700;display:flex;justify-content:space-between;align-items:center;box-shadow:0 6px 16px rgba(20,33,61,.3);z-index:4;cursor:pointer}
 .nuevo[data-paso=productos] .col-cart,.nuevo[data-paso=carrito] .col-prod,.nuevo[data-paso=carrito] .barra{display:none}
-.tag{display:inline-block;font-size:12px;padding:2px 8px;border-radius:99px;background:#fee2e2;color:var(--red);font-weight:700}
-.ok{text-align:center;padding:24px 12px}
-.ok .big{font-size:54px}
-table{border-collapse:collapse;width:100%;font-size:13px}
-td,th{border:1px solid var(--line);padding:4px 6px;text-align:left}
-.modal{position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:20;display:flex;align-items:flex-end;justify-content:center}
-.modal>div{background:#fff;width:100%;max-width:560px;max-height:92vh;overflow:auto;border-radius:16px 16px 0 0;padding:16px}
-#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:140px;background:#17212b;color:#fff;padding:10px 16px;border-radius:99px;font-size:14px;z-index:30;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90vw;text-align:center}
+
+.rem-cab{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.anulado .rem-cab b,.anulado .pp{text-decoration:line-through;color:var(--mut)}
+.tag{font-size:12.5px;padding:1px 9px;border-radius:99px;background:#fbe0e4;color:var(--rojo);font-weight:700}
+.listo{text-align:center;padding:26px 14px}
+.listo svg{width:60px;height:60px}
+.listo circle{fill:#1a7f4b}
+.listo path{fill:none;stroke:#fff;stroke-width:5;stroke-linecap:round;stroke-linejoin:round}
+.listo .nro{display:block;margin-bottom:8px}
+
+table{border-collapse:collapse;width:100%;font-size:14px}
+td,th{border-bottom:1px solid var(--linea);padding:6px;text-align:left}
+.modal{position:fixed;inset:0;background:rgba(20,33,61,.55);z-index:20;display:flex;align-items:flex-end;justify-content:center}
+.modal>div{background:var(--blanco);width:100%;max-width:560px;max-height:92vh;overflow:auto;border-radius:14px 14px 0 0;padding:18px 16px calc(16px + env(safe-area-inset-bottom))}
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:150px;background:var(--tx);color:#fff;padding:10px 18px;border-radius:8px;font-size:15px;z-index:30;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90vw;text-align:center}
 #toast.on{opacity:1}
+
 @media(min-width:900px){
-  .nuevo{display:grid;grid-template-columns:1fr 400px;gap:16px;align-items:start}
+  .nuevo{display:grid;grid-template-columns:1fr 400px;gap:20px;align-items:start}
   .nuevo .col-cart,.nuevo .col-prod{display:block!important}
-  .nuevo .col-cart{position:sticky;top:64px}
+  .nuevo .col-cart{position:sticky;top:70px}
   .barra,.volver{display:none!important}
-  .modal{align-items:center}.modal>div{border-radius:16px}
+  .modal{align-items:center}.modal>div{border-radius:14px}
 }
 </style>
 </head>
 <body>
-<header><span id="titulo">Remitos</span><small id="estado"></small></header>
+<header><div class="marca"><img id="logo" alt="" hidden><span id="titulo">Remitos</span></div><span id="estado"></span></header>
 <main id="view"></main>
 <nav id="nav">
-  <button data-v="nuevo"><span>🧾</span>Nuevo</button>
-  <button data-v="remitos"><span>📚</span>Remitos</button>
-  <button data-v="productos"><span>📦</span>Stock</button>
-  <button data-v="clientes"><span>👥</span>Clientes</button>
-  <button data-v="ajustes"><span>⚙️</span>Ajustes</button>
+  <button data-v="nuevo"><svg viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M12 8v6M9 11h6"/></svg>Nuevo</button>
+  <button data-v="remitos"><svg viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>Remitos</button>
+  <button data-v="productos"><svg viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg>Productos</button>
+  <button data-v="clientes"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>Clientes</button>
+  <button data-v="ajustes"><svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg>Ajustes</button>
 </nav>
-<div id="toast"></div>
+<div id="toast" role="status"></div>
 <script src="lib/xlsx.full.min.js"></script>
 <script src="lib/jspdf.umd.min.js"></script>
 <script src="app.js"></script>

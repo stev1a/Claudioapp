@@ -9,6 +9,7 @@ const norm = s => String(s ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ
 const fecha = iso => new Date(iso).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 const nroRemito = r => String(r.pv).padStart(4, '0') + '-' + String(r.numero).padStart(8, '0');
 const r2 = n => Math.round(n * 100) / 100;
+const busca = (id, ph, cls = '') => `<div class="busca ${cls}"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/></svg><input id="${id}" type="search" placeholder="${ph}" autocomplete="off"></div>`;
 
 function toast(msg) {
   const t = $('#toast'); t.textContent = msg; t.classList.add('on');
@@ -64,7 +65,7 @@ const store = {
 };
 const db = {
   productos: [], clientes: [], remitos: [],
-  config: { negocio: '', cuit: '', telefono: '', direccion: '', pv: 1, proximo: 1, sinStock: false },
+  config: { negocio: '', cuit: '', telefono: '', direccion: '', pv: 1, proximo: 1, logo: '', logoR: 1 },
   draft: { cliente: '', items: [], desc: 0, obs: '' }
 };
 const guardar = (...keys) => Promise.all(keys.map(k => store.set(k, db[k])));
@@ -77,6 +78,7 @@ function ir(v, arg) {
   vista = v;
   document.querySelectorAll('#nav button').forEach(b => b.classList.toggle('on', b.dataset.v === v));
   $('#titulo').textContent = db.config.negocio || 'Remitos';
+  $('#logo').hidden = !db.config.logo; if (db.config.logo) $('#logo').src = db.config.logo;
   window.scrollTo(0, 0);
   vistas[v](arg);
 }
@@ -88,10 +90,6 @@ const cantDe = id => (db.draft.items.find(i => i.id === id) || {}).cant || 0;
 function setCant(id, cant) {
   const p = prod(id); if (!p) return;
   cant = Math.max(0, r2(Number(cant) || 0));
-  if (!db.config.sinStock && cant > p.stock) {
-    cant = Math.max(0, p.stock);
-    toast(p.stock > 0 ? `Solo quedan ${num(p.stock)} en la camioneta` : 'Sin stock en la camioneta');
-  }
   const i = db.draft.items.findIndex(x => x.id === id);
   if (cant <= 0) { if (i > -1) db.draft.items.splice(i, 1); }
   else if (i > -1) db.draft.items[i].cant = cant;
@@ -119,29 +117,32 @@ function pintarLista() {
   let l = db.productos.filter(p => { const t = norm(p.nombre + ' ' + p.codigo); return pal.every(w => t.includes(w)); });
   const total = l.length; l = l.slice(0, 80);
   if (!db.productos.length) {
-    box.innerHTML = `<div class="card">Todavía no hay productos cargados. Andá a <b>Stock</b> e importá la planilla de Excel con los precios.</div>`;
+    box.innerHTML = `<div class="card"><h2>Todavía no hay productos</h2><p class="mut">Cargá la planilla de Excel con los precios para empezar a hacer remitos.</p><button class="btn pri" id="ir-prod">Cargar productos</button></div>`;
+    $('#ir-prod').onclick = () => ir('productos');
   } else {
     box.innerHTML = l.map(p => {
       const c = cantDe(p.id);
       return `<div class="prod ${c ? 'sel' : ''}" data-id="${p.id}">
-        <div class="pi"><b>${esc(p.nombre)}</b><span class="mut">${p.codigo ? esc(p.codigo) + ' · ' : ''}<span class="${p.stock <= 0 ? 'bad' : ''}">Stock: ${num(p.stock)}</span> · ${money(p.precio)}</span></div>
-        ${c ? stepper(p.id, c) : `<button class="btn sm pri" data-act="mas">Agregar</button>`}
+        <div class="pi"><b>${esc(p.nombre)}</b>${p.codigo ? `<div class="meta">${esc(p.codigo)}</div>` : ''}</div>
+        <div class="pr"><div class="pp">${money(p.precio)}</div>
+        ${c ? stepper(p.id, c) : `<button class="mas" data-act="mas" aria-label="Agregar ${esc(p.nombre)}">+</button>`}</div>
       </div>`;
-    }).join('') + (total > l.length ? `<p class="mut">Mostrando ${l.length} de ${total}. Escribí en el buscador para afinar.</p>` : '') +
-      (!total ? `<p class="mut">No hay productos que coincidan.</p>` : '');
+    }).join('') + (total > l.length ? `<p class="mut">Se muestran ${l.length} de ${total}. Escribí en el buscador para encontrar el resto.</p>` : '') +
+      (!total ? `<p class="mut">Ningún producto coincide con “${esc($('#q').value)}”.</p>` : '');
   }
   const t = totales(), n = db.draft.items.length;
   const b = $('#barra');
   b.style.display = n ? '' : 'none';
-  b.innerHTML = `<span>${n} producto${n === 1 ? '' : 's'} · ${money(t.total)}</span><span>Ver remito ›</span>`;
+  const txt = `<span>${n} producto${n === 1 ? '' : 's'}</span><span class="ver">${money(t.total)} ›</span>`;
+  b.innerHTML = txt;
 }
 function pintarCarrito() {
   const box = $('#cart'); if (!box) return;
   box.innerHTML = db.draft.items.length ? db.draft.items.map(i => {
     const p = prod(i.id); if (!p) return '';
     return `<div class="citem" data-id="${p.id}"><div class="pi"><b>${esc(p.nombre)}</b>
-      <span class="mut">${money(p.precio)} c/u · <b>${money(p.precio * i.cant)}</b></span></div>${stepper(p.id, i.cant)}</div>`;
-  }).join('') : `<p class="mut">Todavía no agregaste productos.</p>`;
+      <div class="meta"><span>${money(p.precio)} c/u</span><span class="imp">${money(p.precio * i.cant)}</span></div></div>${stepper(p.id, i.cant)}</div>`;
+  }).join('') : `<div class="vacio">Agregá productos desde la lista y aparecen acá.</div>`;
   const t = totales();
   $('#tot').innerHTML = (t.descuento ? `<div class="sub"><span>Subtotal</span><span>${money(t.sub)}</span></div>
     <div class="sub"><span>Descuento ${num(t.d)}%</span><span>− ${money(t.descuento)}</span></div>` : '') +
@@ -158,12 +159,13 @@ vistas.nuevo = () => {
   const d = db.draft;
   $('#view').innerHTML = `<div class="nuevo" data-paso="${paso}">
     <section class="col-prod">
-      <input id="q" type="search" placeholder="🔍 Buscar producto o código…" autocomplete="off">
-      <div id="lista" style="margin-top:10px"></div>
+      ${busca('q', 'Buscar producto o código')}
+      <div id="lista" style="margin-top:12px"></div>
     </section>
-    <section class="col-cart card">
-      <button class="btn sm volver" id="volver" style="margin-bottom:10px">‹ Seguir agregando</button>
-      <h2>Remito N° ${nroRemito({ pv: db.config.pv, numero: db.config.proximo })}</h2>
+    <section class="col-cart">
+      <button class="btn sm volver" id="volver" style="margin-bottom:14px">‹ Seguir agregando</button>
+      <div class="papel">
+      <div class="papel-cab"><h2>Remito</h2><div><span class="nro">N° ${nroRemito({ pv: db.config.pv, numero: db.config.proximo })}</span><small>${fecha(new Date())}</small></div></div>
       <label>Cliente<input id="cli" list="dl-cli" placeholder="Nombre del comercio" value="${esc(d.cliente)}" autocomplete="off"></label>
       <datalist id="dl-cli">${db.clientes.map(c => `<option value="${esc(c.nombre)}">`).join('')}</datalist>
       <div id="cart"></div>
@@ -173,7 +175,8 @@ vistas.nuevo = () => {
       </div>
       <div id="tot"></div>
       <button class="btn pri big" id="confirmar">Confirmar remito</button>
-      <button class="btn sm red" id="vaciar" style="margin-top:10px">Vaciar</button>
+      </div>
+      <button class="btn sm red" id="vaciar" style="margin-top:14px">Vaciar remito</button>
     </section>
     <button class="barra" id="barra"></button>
   </div>`;
@@ -204,17 +207,17 @@ async function confirmar() {
     cliente: { ...cli }, obs: d.obs.trim(), subtotal: t.sub, descPct: t.d, descuento: t.descuento, total: t.total, anulado: false,
     items: d.items.map(i => { const p = prod(i.id); return { pid: p.id, codigo: p.codigo, nombre: p.nombre, precio: p.precio, cant: i.cant }; })
   };
-  r.items.forEach(i => { const p = prod(i.pid); p.stock = r2(p.stock - i.cant); });
   db.remitos.unshift(r); db.config.proximo++;
   db.draft = { cliente: '', items: [], desc: 0, obs: '' }; paso = 'productos';
-  await guardar('remitos', 'productos', 'clientes', 'config', 'draft');
+  await guardar('remitos', 'clientes', 'config', 'draft');
   ir('hecho', r);
 }
 vistas.hecho = r => {
   document.querySelector('#nav [data-v=nuevo]').classList.add('on');
-  $('#view').innerHTML = `<div class="card ok"><div class="big">✅</div>
-    <h2>Remito N° ${nroRemito(r)} guardado</h2>
-    <p>${esc(r.cliente.nombre)} · <b>${money(r.total)}</b><br><span class="mut">El stock de la camioneta ya se descontó.</span></p>
+  $('#view').innerHTML = `<div class="card listo"><svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="24"/><path d="M14 25l7 7 13-15"/></svg>
+    <h2>Remito guardado</h2><span class="nro">N° ${nroRemito(r)}</span>
+    <p><b>${esc(r.cliente.nombre)}</b><br><span class="pp" style="font-size:30px">${money(r.total)}</span></p>
+
     <button class="btn pri big" id="comp">Enviar PDF por WhatsApp</button>
     <div class="row" style="margin-top:10px;justify-content:center">
       <button class="btn" id="desc-pdf">Descargar PDF</button>
@@ -229,10 +232,14 @@ function hacerPDF(r) {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   const c = db.config, M = 14, W = 210, R = W - M;
-  let y = 18;
-  doc.setFont('helvetica', 'bold').setFontSize(17).text(c.negocio || 'Remito', M, y);
+  let y = 18, x0 = M;
+  if (c.logo) {
+    let h = 22, w = h * (c.logoR || 1); if (w > 45) { w = 45; h = w / (c.logoR || 1); }
+    try { doc.addImage(c.logo, 'JPEG', M, 10, w, h); x0 = M + w + 5; } catch (e) { /* imagen inválida: sigue sin logo */ }
+  }
+  doc.setFont('helvetica', 'bold').setFontSize(17).text(c.negocio || 'Remito', x0, y);
   doc.setFont('helvetica', 'normal').setFontSize(9.5);
-  [c.direccion, c.telefono && 'Tel.: ' + c.telefono, c.cuit && 'CUIT: ' + c.cuit].filter(Boolean).forEach(l => { y += 5; doc.text(String(l), M, y); });
+  [c.direccion, c.telefono && 'Tel.: ' + c.telefono, c.cuit && 'CUIT: ' + c.cuit].filter(Boolean).forEach(l => { y += 5; doc.text(String(l), x0, y); });
   doc.setDrawColor(60).rect(R - 62, 10, 62, 24);
   doc.setFont('helvetica', 'bold').setFontSize(14).text('REMITO', R - 31, 17, { align: 'center' });
   doc.setFontSize(11).text('N° ' + nroRemito(r), R - 31, 23.5, { align: 'center' });
@@ -290,16 +297,16 @@ async function compartir(r) {
 
 /* ===== Historial ===== */
 vistas.remitos = () => {
-  $('#view').innerHTML = `<input id="qr" type="search" placeholder="🔍 Buscar por cliente o número…"><div id="lr" style="margin-top:10px"></div>`;
+  $('#view').innerHTML = `${busca('qr', 'Buscar por cliente o número')}<div id="lr" style="margin-top:12px"></div>`;
   const pintar = () => {
     const q = norm($('#qr').value);
     const l = db.remitos.filter(r => norm(r.cliente.nombre + ' ' + nroRemito(r)).includes(q)).slice(0, 150);
-    $('#lr').innerHTML = l.length ? l.map(r => `<div class="card" data-id="${r.id}">
-      <div class="row" style="justify-content:space-between"><b>${esc(r.cliente.nombre)}</b><b>${money(r.total)}</b></div>
-      <div class="mut">N° ${nroRemito(r)} · ${fecha(r.fecha)} · ${r.items.length} producto${r.items.length === 1 ? '' : 's'} ${r.anulado ? '<span class="tag">ANULADO</span>' : ''}</div>
-      <div class="row" style="margin-top:8px"><button class="btn sm pri" data-a="comp">Enviar</button><button class="btn sm" data-a="pdf">PDF</button>
+    $('#lr').innerHTML = l.length ? l.map(r => `<div class="card ${r.anulado ? 'anulado' : ''}" data-id="${r.id}">
+      <div class="rem-cab"><b>${esc(r.cliente.nombre)}</b><span class="pp">${money(r.total)}</span></div>
+      <div class="meta"><span class="nro" style="font-size:16px">N° ${nroRemito(r)}</span><span>${fecha(r.fecha)}</span><span>${r.items.length} producto${r.items.length === 1 ? '' : 's'}</span>${r.anulado ? '<span class="tag">Anulado</span>' : ''}</div>
+      <div class="row" style="margin-top:12px"><button class="btn sm pri" data-a="comp">Enviar</button><button class="btn sm" data-a="pdf">PDF</button>
       <button class="btn sm" data-a="ver">Ver detalle</button>${r.anulado ? '' : '<button class="btn sm red" data-a="anular">Anular</button>'}</div></div>`).join('')
-      : `<div class="card mut">No hay remitos todavía.</div>`;
+      : `<div class="card mut">${db.remitos.length ? 'Ningún remito coincide con la búsqueda.' : 'Los remitos que confirmes van a quedar guardados acá, para reenviarlos o anularlos.'}</div>`;
   };
   $('#qr').addEventListener('input', pintar);
   $('#lr').addEventListener('click', async e => {
@@ -311,29 +318,28 @@ vistas.remitos = () => {
       <table><tr><th>Cant.</th><th>Producto</th><th>Importe</th></tr>${r.items.map(i => `<tr><td>${num(i.cant)}</td><td>${esc(i.nombre)}</td><td>${money(i.precio * i.cant)}</td></tr>`).join('')}</table>
       ${r.descuento ? `<p class="mut">Descuento ${num(r.descPct)}%: − ${money(r.descuento)}</p>` : ''}<div class="tot"><span>Total</span><span>${money(r.total)}</span></div>
       ${r.obs ? `<p class="mut">${esc(r.obs)}</p>` : ''}<button class="btn big" data-cerrar>Cerrar</button>`);
-    if (b.dataset.a === 'anular' && confirm(`¿Anular el remito ${nroRemito(r)}? La mercadería vuelve al stock de la camioneta.`)) {
+    if (b.dataset.a === 'anular' && confirm(`¿Anular el remito ${nroRemito(r)}? Queda guardado, marcado como anulado.`)) {
       r.anulado = true;
-      r.items.forEach(i => { const p = prod(i.pid); if (p) p.stock = r2(p.stock + i.cant); });
-      await guardar('remitos', 'productos'); pintar(); toast('Remito anulado y stock devuelto');
+      await guardar('remitos'); pintar(); toast('Remito anulado');
     }
   });
   pintar();
 };
 
-/* ===== Productos / stock ===== */
+/* ===== Productos ===== */
 vistas.productos = () => {
-  $('#view').innerHTML = `<div class="row"><input id="qp" class="grow" type="search" placeholder="🔍 Buscar…">
+  $('#view').innerHTML = `<div class="row">${busca('qp', 'Buscar producto', 'grow')}
     <button class="btn pri" id="np">+ Producto</button><button class="btn" id="imp">Importar Excel</button>
     <input type="file" id="fx" accept=".xlsx,.xls,.csv,.ods" hidden></div>
     <p class="mut" id="resumen"></p><div id="lp"></div>`;
   const pintar = () => {
     const q = norm($('#qp').value);
     const l = db.productos.filter(p => norm(p.nombre + ' ' + p.codigo).includes(q));
-    $('#resumen').textContent = `${db.productos.length} productos · mercadería en la camioneta: ${money(db.productos.reduce((s, p) => s + Math.max(0, p.stock) * p.precio, 0))}`;
+    $('#resumen').textContent = `${db.productos.length} productos en la lista`;
     $('#lp').innerHTML = l.slice(0, 200).map(p => `<div class="prod" data-id="${p.id}" style="cursor:pointer">
-      <div class="pi"><b>${esc(p.nombre)}</b><span class="mut">${esc(p.codigo || 'sin código')}</span></div>
-      <div style="text-align:right"><div class="pp">${money(p.precio)}</div><span class="mut ${p.stock <= 0 ? 'bad' : ''}">Stock: ${num(p.stock)}</span></div></div>`).join('')
-      || `<div class="card mut">Sin productos. Usá “Importar Excel” para cargar la planilla de precios.</div>`;
+      <div class="pi"><b>${esc(p.nombre)}</b>${p.codigo ? `<div class="meta">${esc(p.codigo)}</div>` : ''}</div>
+      <div class="pp">${money(p.precio)}</div></div>`).join('')
+      || `<div class="card mut">${db.productos.length ? 'Ningún producto coincide con la búsqueda.' : 'Tocá “Importar Excel” y elegí la planilla de precios. También podés cargar productos de a uno.'}</div>`;
   };
   $('#qp').addEventListener('input', pintar);
   $('#np').onclick = () => editarProducto(null, pintar);
@@ -343,18 +349,16 @@ vistas.productos = () => {
   pintar();
 };
 function editarProducto(p, alGuardar) {
-  const n = !p; p = p || { id: uid(), codigo: '', nombre: '', precio: 0, stock: 0 };
+  const n = !p; p = p || { id: uid(), codigo: '', nombre: '', precio: 0 };
   const m = modal(`<h2>${n ? 'Nuevo producto' : 'Editar producto'}</h2>
     <label>Descripción<input id="f-n" value="${esc(p.nombre)}"></label>
     <label>Código<input id="f-c" value="${esc(p.codigo)}"></label>
-    <div class="row"><label class="grow">Precio<input id="f-p" type="number" inputmode="decimal" step="any" value="${p.precio || ''}"></label>
-    <label class="grow">Stock en camioneta<input id="f-s" type="number" inputmode="decimal" step="any" value="${p.stock}"></label></div>
-    ${n ? '' : `<label>Sumar mercadería al stock (recarga)<input id="f-mas" type="number" inputmode="decimal" step="any" placeholder="0"></label>`}
+    <label>Precio<input id="f-p" type="number" inputmode="decimal" step="any" value="${p.precio || ''}"></label>
     <div class="row"><button class="btn pri grow" id="f-ok">Guardar</button><button class="btn" data-cerrar>Cancelar</button>
     ${n ? '' : '<button class="btn red" id="f-del">Eliminar</button>'}</div>`);
   $('#f-ok', m).onclick = async () => {
     const nombre = $('#f-n', m).value.trim(); if (!nombre) return toast('Falta la descripción');
-    Object.assign(p, { nombre, codigo: $('#f-c', m).value.trim(), precio: parseNum($('#f-p', m).value), stock: r2(parseNum($('#f-s', m).value) + (n ? 0 : parseNum($('#f-mas', m).value))) });
+    Object.assign(p, { nombre, codigo: $('#f-c', m).value.trim(), precio: parseNum($('#f-p', m).value) });
     if (n) db.productos.push(p);
     db.productos.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
     await guardar('productos'); m.remove(); alGuardar();
@@ -372,7 +376,7 @@ async function importarExcel(file, alTerminar) {
   let wb;
   try { wb = XLSX.read(await file.arrayBuffer()); } catch (e) { return toast('No se pudo leer el archivo'); }
   const CAMPOS = [['nombre', 'Descripción *', /desc|producto|nombre|detalle|art[ií]culo|item/i], ['codigo', 'Código', /c[oó]d|sku|ref/i],
-    ['precio', 'Precio *', /precio|importe|valor|pvp|lista|\$/i], ['stock', 'Stock', /stock|cant|exist|unid/i]];
+    ['precio', 'Precio *', /precio|importe|valor|pvp|lista|\$/i]];
   const m = modal(`<h2>Importar planilla</h2>
     <label>Hoja<select id="i-h">${wb.SheetNames.map(n => `<option>${esc(n)}</option>`).join('')}</select></label>
     <p class="mut">Indicá qué columna de la planilla corresponde a cada dato.</p>
@@ -407,14 +411,14 @@ async function importarExcel(file, alTerminar) {
       if (!nombre) return;
       const pr = ix.precio > -1 ? r[ix.precio] : '';
       if (ix.precio > -1 && pr === '' ) return;
-      out.push({ nombre, codigo: ix.codigo > -1 ? String(r[ix.codigo] ?? '').trim() : '', precio: r2(parseNum(pr)), stock: ix.stock > -1 ? r2(parseNum(r[ix.stock])) : null });
+      out.push({ nombre, codigo: ix.codigo > -1 ? String(r[ix.codigo] ?? '').trim() : '', precio: r2(parseNum(pr)) });
     });
     return { ix, out };
   };
   const previa = () => {
     const { out } = leer();
-    $('#i-prev', m).innerHTML = out.length ? `<p class="mut">${out.length} productos encontrados. Primeros:</p><table><tr><th>Código</th><th>Descripción</th><th>Precio</th><th>Stock</th></tr>` +
-      out.slice(0, 5).map(p => `<tr><td>${esc(p.codigo)}</td><td>${esc(p.nombre)}</td><td>${money(p.precio)}</td><td>${p.stock == null ? '—' : num(p.stock)}</td></tr>`).join('') + '</table>'
+    $('#i-prev', m).innerHTML = out.length ? `<p class="mut">${out.length} productos encontrados. Primeros:</p><table><tr><th>Código</th><th>Descripción</th><th>Precio</th></tr>` +
+      out.slice(0, 5).map(p => `<tr><td>${esc(p.codigo)}</td><td>${esc(p.nombre)}</td><td>${money(p.precio)}</td></tr>`).join('') + '</table>'
       : '<p class="bad">Elegí al menos la columna de descripción y la de precio.</p>';
   };
   $('#i-h', m).onchange = leerHoja; $('#i-map', m).addEventListener('change', previa);
@@ -429,8 +433,8 @@ async function importarExcel(file, alTerminar) {
     db.productos.forEach(p => { if (p.codigo) porCod.set(norm(p.codigo), p); porNom.set(norm(p.nombre), p); });
     out.forEach(o => {
       const p = (o.codigo && porCod.get(norm(o.codigo))) || porNom.get(norm(o.nombre));
-      if (p) { p.precio = o.precio; p.nombre = o.nombre; if (o.codigo) p.codigo = o.codigo; if (o.stock != null) p.stock = o.stock; act++; }
-      else { const n = { id: uid(), codigo: o.codigo, nombre: o.nombre, precio: o.precio, stock: o.stock ?? 0 }; db.productos.push(n); if (n.codigo) porCod.set(norm(n.codigo), n); porNom.set(norm(n.nombre), n); nuevos++; }
+      if (p) { p.precio = o.precio; p.nombre = o.nombre; if (o.codigo) p.codigo = o.codigo; act++; }
+      else { const n = { id: uid(), codigo: o.codigo, nombre: o.nombre, precio: o.precio }; db.productos.push(n); if (n.codigo) porCod.set(norm(n.codigo), n); porNom.set(norm(n.nombre), n); nuevos++; }
     });
     db.productos.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
     await guardar('productos', 'draft'); m.remove(); alTerminar();
@@ -441,12 +445,12 @@ async function importarExcel(file, alTerminar) {
 
 /* ===== Clientes ===== */
 vistas.clientes = () => {
-  $('#view').innerHTML = `<div class="row"><input id="qc" class="grow" type="search" placeholder="🔍 Buscar cliente…"><button class="btn pri" id="nc">+ Cliente</button></div><div id="lc" style="margin-top:10px"></div>`;
+  $('#view').innerHTML = `<div class="row">${busca('qc', 'Buscar cliente', 'grow')}<button class="btn pri" id="nc">+ Cliente</button></div><div id="lc" style="margin-top:10px"></div>`;
   const pintar = () => {
     const q = norm($('#qc').value);
     $('#lc').innerHTML = db.clientes.filter(c => norm(c.nombre).includes(q)).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))
-      .map(c => `<div class="prod" data-id="${c.id}" style="cursor:pointer"><div class="pi"><b>${esc(c.nombre)}</b><span class="mut">${esc([c.direccion, c.telefono].filter(Boolean).join(' · ') || 'Tocá para completar los datos')}</span></div></div>`).join('')
-      || `<div class="card mut">Sin clientes. Se van guardando solos al hacer remitos.</div>`;
+      .map(c => `<div class="prod" data-id="${c.id}" style="cursor:pointer"><div class="pi"><b>${esc(c.nombre)}</b><div class="meta">${[c.direccion, c.telefono].filter(Boolean).map(x => `<span>${esc(x)}</span>`).join('') || '<span>Tocá para completar dirección y teléfono</span>'}</div></div></div>`).join('')
+      || `<div class="card mut">Los clientes se guardan solos cuando les hacés el primer remito.</div>`;
   };
   const editar = c => {
     const n = !c; c = c || { id: uid(), nombre: '', direccion: '', telefono: '', cuit: '' };
@@ -476,20 +480,37 @@ vistas.ajustes = () => {
     <label>Dirección<input data-c="direccion" value="${esc(c.direccion)}"></label>
     <div class="row"><label class="grow">Teléfono<input data-c="telefono" value="${esc(c.telefono)}"></label><label class="grow">CUIT<input data-c="cuit" value="${esc(c.cuit)}"></label></div>
     <div class="row"><label class="grow">Punto de venta<input data-c="pv" type="number" min="1" value="${c.pv}"></label><label class="grow">Próximo número<input data-c="proximo" type="number" min="1" value="${c.proximo}"></label></div>
-    <label class="chk"><input type="checkbox" data-c="sinStock" ${c.sinStock ? 'checked' : ''}>Permitir vender más de lo que figura en stock</label></div>
+    <label>Logo del negocio (sale en la app y en el remito)</label>
+    <div class="row">${c.logo ? `<img src="${c.logo}" alt="Logo" style="height:48px;max-width:140px;object-fit:contain">` : ''}
+      <button class="btn sm" id="lg">${c.logo ? 'Cambiar logo' : 'Elegir imagen'}</button>${c.logo ? '<button class="btn sm red" id="lgx">Quitar</button>' : ''}
+      <input type="file" id="flg" accept="image/*" hidden></div></div>
   <div class="card"><h2>Copia de seguridad</h2>
     <p class="mut">Todo se guarda solo en este dispositivo. Hacé una copia seguido (por ejemplo al terminar el día) y guardala en WhatsApp, Drive o mail. También sirve para pasar los datos a otro equipo.</p>
     <div class="row"><button class="btn pri" id="bk">Guardar copia</button><button class="btn" id="rs">Restaurar copia</button><input type="file" id="frs" accept=".json,application/json" hidden></div></div>
   <div class="card"><h2>Exportar a Excel</h2>
-    <div class="row"><button class="btn" id="xv">Ventas (remitos)</button><button class="btn" id="xs">Stock actual</button></div></div>
+    <div class="row"><button class="btn" id="xv">Ventas (remitos)</button><button class="btn" id="xs">Lista de precios</button></div></div>
   <p class="mut" id="almac"></p>`;
   $('#view').addEventListener('change', async e => {
     const k = e.target.dataset.c; if (!k) return;
-    if (k === 'sinStock') c[k] = e.target.checked;
-    else if (k === 'pv' || k === 'proximo') c[k] = Math.max(1, parseInt(e.target.value) || 1);
+    if (k === 'pv' || k === 'proximo') c[k] = Math.max(1, parseInt(e.target.value) || 1);
     else c[k] = e.target.value.trim();
     await guardar('config'); $('#titulo').textContent = c.negocio || 'Remitos'; toast('Guardado');
   });
+  $('#lg').onclick = () => $('#flg').click();
+  $('#flg').onchange = e => {
+    const f = e.target.files[0]; if (!f) return;
+    const img = new Image();
+    img.onload = async () => {
+      const k = Math.min(1, 400 / Math.max(img.width, img.height)), cv = document.createElement('canvas');
+      cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k);
+      const g = cv.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, cv.width, cv.height); g.drawImage(img, 0, 0, cv.width, cv.height);
+      c.logo = cv.toDataURL('image/jpeg', 0.9); c.logoR = cv.width / cv.height;
+      await guardar('config'); ir('ajustes'); toast('Logo guardado');
+    };
+    img.onerror = () => toast('No se pudo leer la imagen');
+    img.src = URL.createObjectURL(f);
+  };
+  if ($('#lgx')) $('#lgx').onclick = async () => { c.logo = ''; await guardar('config'); ir('ajustes'); };
   const hoy = new Date().toISOString().slice(0, 10);
   $('#bk').onclick = async () => {
     const file = new File([JSON.stringify({ app: 'remitos', v: 1, fecha: new Date().toISOString(), productos: db.productos, clientes: db.clientes, remitos: db.remitos, config: db.config })], `copia-remitos-${hoy}.json`, { type: 'application/json' });
@@ -513,7 +534,7 @@ vistas.ajustes = () => {
     const f = []; db.remitos.forEach(r => r.items.forEach(i => f.push({ Remito: nroRemito(r), Fecha: fecha(r.fecha), Cliente: r.cliente.nombre, Estado: r.anulado ? 'Anulado' : 'OK', Código: i.codigo, Producto: i.nombre, Cantidad: i.cant, 'Precio unit.': i.precio, Importe: r2(i.precio * i.cant), 'Desc. % remito': r.descPct, 'Total remito': r.total })));
     f.length ? xlsx(f, 'Ventas', `ventas-${hoy}.xlsx`) : toast('No hay remitos para exportar');
   };
-  $('#xs').onclick = () => db.productos.length ? xlsx(db.productos.map(p => ({ Código: p.codigo, Descripción: p.nombre, Precio: p.precio, Stock: p.stock })), 'Stock', `stock-${hoy}.xlsx`) : toast('No hay productos');
+  $('#xs').onclick = () => db.productos.length ? xlsx(db.productos.map(p => ({ Código: p.codigo, Descripción: p.nombre, Precio: p.precio })), 'Precios', `precios-${hoy}.xlsx`) : toast('No hay productos');
   $('#almac').textContent = store.idb ? '' : '⚠️ Este navegador no permite guardar datos (¿modo incógnito?). Lo que cargues se pierde al cerrar.';
 };
 
@@ -526,7 +547,7 @@ vistas.ajustes = () => {
   }
   db.draft.items = (db.draft.items || []).filter(i => prod(i.id));
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
-  const red = () => $('#estado').textContent = navigator.onLine ? '' : 'Sin conexión · funcionando';
+  const red = () => $('#estado').textContent = navigator.onLine ? '' : 'Sin conexión';
   addEventListener('online', red); addEventListener('offline', red); red();
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});
   ir(db.productos.length ? 'nuevo' : 'productos');
