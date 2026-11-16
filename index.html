@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f766e">
+<title>Remitos</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root{--pri:#0f766e;--pri-d:#0b5c56;--bg:#f3f5f7;--card:#fff;--tx:#17212b;--mut:#64748b;--line:#e2e8f0;--red:#c62828;--amber:#b45309}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--tx);-webkit-tap-highlight-color:transparent}
+header{background:var(--pri);color:#fff;padding:12px 16px;padding-top:calc(12px + env(safe-area-inset-top));font-weight:700;font-size:18px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:5}
+header small{font-weight:400;opacity:.85;font-size:13px}
+main{max-width:1100px;margin:0 auto;padding:12px 12px 150px}
+nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);display:flex;z-index:6;padding-bottom:env(safe-area-inset-bottom)}
+nav button{flex:1;border:0;background:none;padding:8px 2px 9px;font:inherit;font-size:12px;color:var(--mut);display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer}
+nav button span{font-size:20px;line-height:1}
+nav button.on{color:var(--pri);font-weight:700}
+h2{font-size:18px;margin:4px 0 10px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px}
+input,select,textarea{font:inherit;width:100%;padding:10px 12px;border:1px solid #cbd5e1;border-radius:10px;background:#fff;color:var(--tx)}
+textarea{min-height:60px;resize:vertical}
+label{display:block;font-size:13px;color:var(--mut);margin-bottom:10px}
+label input,label select,label textarea{margin-top:4px;font-size:16px;color:var(--tx)}
+label.chk{display:flex;gap:10px;align-items:center;font-size:15px;color:var(--tx)}
+label.chk input{width:22px;height:22px;margin:0}
+.btn{font:inherit;border:1px solid #cbd5e1;background:#fff;color:var(--tx);border-radius:10px;padding:10px 14px;cursor:pointer;font-weight:600}
+.btn.pri{background:var(--pri);border-color:var(--pri);color:#fff}
+.btn.big{width:100%;padding:14px;font-size:17px}
+.btn.red{color:var(--red);border-color:#f0c4c4}
+.btn.sm{padding:6px 10px;font-size:14px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.row>.grow{flex:1;min-width:160px}
+.mut{color:var(--mut);font-size:13px}
+.prod{display:flex;align-items:center;gap:10px;padding:10px 12px;background:#fff;border:1px solid var(--line);border-radius:12px;margin-bottom:6px}
+.prod.sel{border-color:var(--pri);background:#f0fbf9}
+.prod .pi{flex:1;min-width:0}
+.prod .pi b{display:block;font-weight:600;overflow-wrap:anywhere}
+.prod .pp{font-weight:700;white-space:nowrap}
+.stp{display:flex;align-items:center;gap:4px}
+.stp button{width:38px;height:38px;border-radius:10px;border:1px solid #cbd5e1;background:#fff;font-size:20px;font-weight:700;cursor:pointer;color:var(--pri)}
+.stp input{width:58px;text-align:center;padding:8px 2px}
+.bad{color:var(--red);font-weight:600}
+.tot{font-size:22px;font-weight:800;display:flex;justify-content:space-between;margin:12px 0}
+.sub{display:flex;justify-content:space-between;color:var(--mut);font-size:14px}
+.citem{display:flex;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.citem .pi{flex:1;min-width:0}
+.citem .pi b{font-weight:600;display:block;overflow-wrap:anywhere}
+.barra{position:fixed;left:10px;right:10px;bottom:calc(66px + env(safe-area-inset-bottom));background:var(--pri-d);color:#fff;border:0;border-radius:14px;padding:14px 16px;font:inherit;font-weight:700;display:flex;justify-content:space-between;box-shadow:0 6px 18px rgba(0,0,0,.25);z-index:4;cursor:pointer}
+.nuevo[data-paso=productos] .col-cart,.nuevo[data-paso=carrito] .col-prod,.nuevo[data-paso=carrito] .barra{display:none}
+.tag{display:inline-block;font-size:12px;padding:2px 8px;border-radius:99px;background:#fee2e2;color:var(--red);font-weight:700}
+.ok{text-align:center;padding:24px 12px}
+.ok .big{font-size:54px}
+table{border-collapse:collapse;width:100%;font-size:13px}
+td,th{border:1px solid var(--line);padding:4px 6px;text-align:left}
+.modal{position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:20;display:flex;align-items:flex-end;justify-content:center}
+.modal>div{background:#fff;width:100%;max-width:560px;max-height:92vh;overflow:auto;border-radius:16px 16px 0 0;padding:16px}
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:140px;background:#17212b;color:#fff;padding:10px 16px;border-radius:99px;font-size:14px;z-index:30;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90vw;text-align:center}
+#toast.on{opacity:1}
+@media(min-width:900px){
+  .nuevo{display:grid;grid-template-columns:1fr 400px;gap:16px;align-items:start}
+  .nuevo .col-cart,.nuevo .col-prod{display:block!important}
+  .nuevo .col-cart{position:sticky;top:64px}
+  .barra,.volver{display:none!important}
+  .modal{align-items:center}.modal>div{border-radius:16px}
+}
+</style>
+</head>
+<body>
+<header><span id="titulo">Remitos</span><small id="estado"></small></header>
+<main id="view"></main>
+<nav id="nav">
+  <button data-v="nuevo"><span>🧾</span>Nuevo</button>
+  <button data-v="remitos"><span>📚</span>Remitos</button>
+  <button data-v="productos"><span>📦</span>Stock</button>
+  <button data-v="clientes"><span>👥</span>Clientes</button>
+  <button data-v="ajustes"><span>⚙️</span>Ajustes</button>
+</nav>
+<div id="toast"></div>
+<script src="lib/xlsx.full.min.js"></script>
+<script src="lib/jspdf.umd.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
