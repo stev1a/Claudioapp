@@ -1,5 +1,5 @@
 // Cambiar el número de versión cada vez que se suba una actualización de la app.
-const CACHE = 'remitos-v3';
+const CACHE = 'remitos-v4';
 const ARCHIVOS = ['./', 'index.html', 'app.js', 'lib/xlsx.full.min.js', 'lib/jspdf.umd.min.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', e => {

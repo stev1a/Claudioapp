@@ -25,3 +25,11 @@ No abrir `index.html` con doble clic: sin servidor no se instala ni queda dispon
 - Al subir una versión nueva de la app, cambiar `remitos-v1` por `remitos-v2` (etc.) en `sw.js` para que los dispositivos la tomen.
 - El ícono de la app en la pantalla del celular son los archivos `icon-192.png` e `icon-512.png`. Para poner el logo del cliente, reemplazarlos por su logo en esos dos tamaños (cuadrado, PNG) con el mismo nombre.
 - El PDF dice "Documento no válido como factura": es un remito interno, no un comprobante fiscal.
+
+## Versión de prueba y activación
+
+- Sin activar, la app permite hacer 5 remitos y los PDF salen con la marca "Versión de prueba".
+- En **Ajustes → Licencia** el cliente ve el código de su equipo y te lo pasa.
+- Abrís `generador-claves.html` en tu computadora (doble clic), cargás ese código y le mandás la clave que aparece.
+- La clave sirve solo para ese equipo. Si el cliente borra los datos del navegador o cambia de equipo, el código cambia y hay que generarle una clave nueva.
+- `generador-claves.html` es privado: no va en GitHub ni al cliente.

@@ -66,8 +66,24 @@ const store = {
 const db = {
   productos: [], clientes: [], remitos: [],
   config: { negocio: '', cuit: '', telefono: '', direccion: '', pv: 1, proximo: 1, logo: '', logoR: 1 },
-  draft: { cliente: '', items: [], desc: 0, obs: '' }
+  draft: { cliente: '', items: [], desc: 0, obs: '' },
+  lic: { id: '', clave: '' }
 };
+
+/* ===== Versión de prueba y activación ===== */
+const PRUEBA_MAX = 5;
+const SECRETO = '0eab978cd096fd48b7b252c4d89187fc';
+function hash53(str) {
+  let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+  for (let i = 0; i < str.length; i++) { const c = str.charCodeAt(i); h1 = Math.imul(h1 ^ c, 2654435761); h2 = Math.imul(h2 ^ c, 1597334677); }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return 4294967296 * (2097151 & h2) + (h1 >>> 0);
+}
+const limpiar = c => String(c || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+const claveDe = id => hash53(SECRETO + '|' + limpiar(id)).toString(36).toUpperCase().padStart(8, '0').slice(-8);
+const activa = () => !!db.lic.clave && limpiar(db.lic.clave) === claveDe(db.lic.id);
+const restantes = () => Math.max(0, PRUEBA_MAX - db.remitos.length);
 const guardar = (...keys) => Promise.all(keys.map(k => store.set(k, db[k])));
 const prod = id => db.productos.find(p => p.id === id);
 
@@ -159,6 +175,7 @@ vistas.nuevo = () => {
   const d = db.draft;
   $('#view').innerHTML = `<div class="nuevo" data-paso="${paso}">
     <section class="col-prod">
+      ${activa() ? '' : `<div class="aviso">${restantes() ? `Versión de prueba: ${restantes() === 1 ? 'queda 1 remito' : 'quedan ' + restantes() + ' remitos'} de ${PRUEBA_MAX}.` : 'La prueba terminó. Activá la app en Ajustes para seguir haciendo remitos.'}</div>`}
       ${busca('q', 'Buscar producto o código')}
       <div id="lista" style="margin-top:12px"></div>
     </section>
@@ -197,6 +214,12 @@ vistas.nuevo = () => {
 };
 async function confirmar() {
   const d = db.draft, nombre = d.cliente.trim();
+  if (!activa() && !restantes()) {
+    const m = modal(`<h2>La prueba terminó</h2><p>La versión de prueba permite hacer ${PRUEBA_MAX} remitos. Para seguir, activá la app con tu clave. Los remitos que ya hiciste quedan guardados.</p>
+      <div class="row"><button class="btn pri grow" id="ir-act">Activar la app</button><button class="btn" data-cerrar>Cerrar</button></div>`);
+    $('#ir-act', m).onclick = () => { m.remove(); ir('ajustes'); };
+    return;
+  }
   if (!d.items.length) return toast('Agregá al menos un producto');
   if (!nombre) { toast('Falta el nombre del cliente'); $('#cli').focus(); return; }
   let cli = db.clientes.find(c => norm(c.nombre) === norm(nombre));
@@ -284,6 +307,16 @@ function hacerPDF(r) {
   doc.setDrawColor(90).line(R - 62, 276, R, 276);
   doc.setFontSize(9).text('Recibí conforme', R - 31, 280.5, { align: 'center' });
   doc.setTextColor(110).text('Documento no válido como factura', M, 280.5);
+  if (!activa()) {
+    for (let i = 1; i <= doc.getNumberOfPages(); i++) {
+      doc.setPage(i); doc.saveGraphicsState();
+      try { doc.setGState(new doc.GState({ opacity: 0.16 })); } catch (e) { /* sin transparencia */ }
+      doc.setFont('helvetica', 'bold').setFontSize(54).setTextColor(200, 16, 46);
+      const mt = 'VERSIÓN DE PRUEBA', k = doc.getTextWidth(mt) / 2 * Math.SQRT1_2;
+      doc.text(mt, 105 - k, 150 + k, { angle: 45 });
+      doc.restoreGraphicsState();
+    }
+  }
   return doc;
 }
 const nombrePDF = r => `Remito ${nroRemito(r)} - ${r.cliente.nombre.replace(/[\\/:*?"<>|]/g, '')}.pdf`;
@@ -484,6 +517,10 @@ vistas.ajustes = () => {
     <div class="row">${c.logo ? `<img src="${c.logo}" alt="Logo" style="height:48px;max-width:140px;object-fit:contain">` : ''}
       <button class="btn sm" id="lg">${c.logo ? 'Cambiar logo' : 'Elegir imagen'}</button>${c.logo ? '<button class="btn sm red" id="lgx">Quitar</button>' : ''}
       <input type="file" id="flg" accept="image/*" hidden></div></div>
+  <div class="card"><h2>Licencia</h2>${activa() ? '<p>App activada. Sin límite de remitos.</p>' : `
+    <p>Versión de prueba: usaste ${Math.min(PRUEBA_MAX, db.remitos.length)} de ${PRUEBA_MAX} remitos. Los PDF salen con la marca “Versión de prueba”.</p>
+    <p>Código de este equipo: <b style="font-size:20px;letter-spacing:.08em">${db.lic.id}</b><br><span class="mut">Pasale este código a quien te vendió la app para recibir tu clave.</span></p>
+    <div class="row"><input id="clave" class="grow" placeholder="Clave de activación" autocomplete="off" autocapitalize="characters"><button class="btn pri" id="act">Activar</button></div>`}</div>
   <div class="card"><h2>Copia de seguridad</h2>
     <p class="mut">Todo se guarda solo en este dispositivo. Hacé una copia seguido (por ejemplo al terminar el día) y guardala en WhatsApp, Drive o mail. También sirve para pasar los datos a otro equipo.</p>
     <div class="row"><button class="btn pri" id="bk">Guardar copia</button><button class="btn" id="rs">Restaurar copia</button><input type="file" id="frs" accept=".json,application/json" hidden></div></div>
@@ -496,6 +533,10 @@ vistas.ajustes = () => {
     else c[k] = e.target.value.trim();
     await guardar('config'); $('#titulo').textContent = c.negocio || 'Remitos'; toast('Guardado');
   });
+  if ($('#act')) $('#act').onclick = async () => {
+    if (limpiar($('#clave').value) !== claveDe(db.lic.id)) return toast('La clave no corresponde a este equipo');
+    db.lic.clave = limpiar($('#clave').value); await guardar('lic'); ir('ajustes'); toast('App activada');
+  };
   $('#lg').onclick = () => $('#flg').click();
   $('#flg').onchange = e => {
     const f = e.target.files[0]; if (!f) return;
@@ -541,11 +582,12 @@ vistas.ajustes = () => {
 /* ===== Inicio ===== */
 (async function () {
   await store.open();
-  for (const k of ['productos', 'clientes', 'remitos', 'config', 'draft']) {
+  for (const k of ['productos', 'clientes', 'remitos', 'config', 'draft', 'lic']) {
     const v = await store.get(k);
-    if (v !== undefined) db[k] = (k === 'config' || k === 'draft') ? Object.assign(db[k], v) : v;
+    if (v !== undefined) db[k] = (k === 'config' || k === 'draft' || k === 'lic') ? Object.assign(db[k], v) : v;
   }
   db.draft.items = (db.draft.items || []).filter(i => prod(i.id));
+  if (!db.lic.id) { const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; db.lic.id = Array.from(crypto.getRandomValues(new Uint8Array(6)), b => A[b % A.length]).join(''); await store.set('lic', db.lic); }
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
   const red = () => $('#estado').textContent = navigator.onLine ? '' : 'Sin conexión';
   addEventListener('online', red); addEventListener('offline', red); red();
