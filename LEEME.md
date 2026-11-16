@@ -22,7 +22,7 @@ No abrir `index.html` con doble clic: sin servidor no se instala ni queda dispon
 
 - Los datos viven **solo en ese dispositivo y ese navegador**. No se sincronizan entre el celular y la tablet.
 - Usar **Ajustes → Guardar copia** seguido. Si se borran los datos del navegador o se pierde el equipo, sin copia no hay forma de recuperarlos.
-- Al subir una versión nueva de la app, cambiar `remitos-v1` por `remitos-v2` (etc.) en `sw.js` para que los dispositivos la tomen.
+- Para actualizar la app alcanza con subir los archivos nuevos a GitHub. No hay que cambiar ningún número de versión: cada dispositivo revisa solo si hay archivos más nuevos cuando se abre o vuelve a primer plano con internet, y se actualiza.
 - El ícono de la app en la pantalla del celular son los archivos `icon-192.png` e `icon-512.png`. Para poner el logo del cliente, reemplazarlos por su logo en esos dos tamaños (cuadrado, PNG) con el mismo nombre.
 - El PDF dice "Documento no válido como factura": es un remito interno, no un comprobante fiscal.
 

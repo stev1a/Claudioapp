@@ -579,6 +579,30 @@ vistas.ajustes = () => {
   $('#almac').textContent = store.idb ? '' : '⚠️ Este navegador no permite guardar datos (¿modo incógnito?). Lo que cargues se pierde al cerrar.';
 };
 
+/* ===== Actualización automática =====
+   Se registra apenas carga el archivo, para no perder el aviso del service worker. */
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  const sw = navigator.serviceWorker, inicio = Date.now();
+  let avisado = false, ultima = Date.now();
+  sw.register('sw.js', { updateViaCache: 'none' }).catch(() => {});
+  // El service worker avisa cuando bajó archivos más nuevos.
+  sw.addEventListener('message', e => {
+    if (!e.data || e.data.t !== 'actualizado' || avisado) return;
+    avisado = true;
+    setTimeout(() => {
+      // Recién abierta o en segundo plano: se actualiza sola. En uso: pregunta, para no cortar lo que se está cargando.
+      if (document.hidden || Date.now() - inicio < 8000) return location.reload();
+      const b = document.createElement('button'); b.className = 'nueva'; b.textContent = 'Hay una versión nueva. Tocá para actualizar.';
+      b.onclick = () => location.reload(); document.body.appendChild(b);
+    }, 2500);
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden || Date.now() - ultima < 60000 || !navigator.onLine) return;
+    ultima = Date.now();
+    sw.getRegistration().then(r => { if (!r) return; r.update().catch(() => {}); if (r.active) r.active.postMessage({ t: 'revisar' }); });
+  });
+}
+
 /* ===== Inicio ===== */
 (async function () {
   await store.open();
@@ -591,6 +615,5 @@ vistas.ajustes = () => {
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
   const red = () => $('#estado').textContent = navigator.onLine ? '' : 'Sin conexión';
   addEventListener('online', red); addEventListener('offline', red); red();
-  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});
   ir(db.productos.length ? 'nuevo' : 'productos');
 })();
